@@ -23,24 +23,31 @@ public final class ExeInstallation extends ToolInstallation implements NodeSpeci
     /** */
     private transient String pathToExe;
 
+    private String defaultArgs;
+
     @DataBoundConstructor
-    public ExeInstallation(String name, String home) {
+    public ExeInstallation(String name, String home, String defaultArgs) {
         super(name, home, null);
+        this.defaultArgs = defaultArgs;
     }
 
     public ExeInstallation forNode(Node node, TaskListener log) throws IOException, InterruptedException {
-        return new ExeInstallation(getName(), translateFor(node, log));
+        return new ExeInstallation(getName(), translateFor(node, log), this.defaultArgs);
     }
 
     public ExeInstallation forEnvironment(EnvVars environment) {
-        return new ExeInstallation(getName(), environment.expand(getHome()));
+        return new ExeInstallation(getName(), environment.expand(getHome()), this.defaultArgs);
     }
 
     protected Object readResolve() {
         if (this.pathToExe != null) {
-            return new ExeInstallation(this.getName(), this.pathToExe);
+            return new ExeInstallation(this.getName(), this.pathToExe, this.defaultArgs);
         }
         return this;
+    }
+
+    public String getDefaultArgs() {
+        return this.defaultArgs;
     }
 
     /**

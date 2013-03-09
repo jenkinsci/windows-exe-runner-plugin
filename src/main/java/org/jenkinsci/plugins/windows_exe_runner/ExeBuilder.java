@@ -72,10 +72,22 @@ public class ExeBuilder extends Builder {
         ArrayList<String> args = new ArrayList<String>();
         EnvVars env = build.getEnvironment(listener);
 
+        ExeInstallation installation = getInstallation();
+        if (installation == null) {
+            listener.fatalError("ExeInstallation not found.");
+            return false;
+        }
+        installation = installation.forNode(Computer.currentComputer().getNode(), listener);
+        installation = installation.forEnvironment(env);
+
         // exe path.
-        String exePath = getExePath(launcher, listener, env);
+        String exePath = getExePath(installation, launcher, listener);
         if (StringUtil.isNullOrSpace(exePath)) return false;
         args.add(exePath);
+
+        // Default Arguments
+        if (!StringUtil.isNullOrSpace(installation.getDefaultArgs()))
+            args.addAll(getArguments(build, env, installation.getDefaultArgs()));
 
         // Manual Command Line String
         if (!StringUtil.isNullOrSpace(cmdLineArgs))
@@ -90,37 +102,29 @@ public class ExeBuilder extends Builder {
 
     /**
      *
+     * @param  installation
      * @param  launcher
      * @param  listener
-     * @param  env
      * @return
      * @throws InterruptedException
      * @throws IOException
      */
-    private String getExePath(Launcher launcher, BuildListener listener, EnvVars env) throws InterruptedException, IOException {
-        ExeInstallation installation = getInstallation();
+    private String getExePath(ExeInstallation installation, Launcher launcher, BuildListener listener) throws InterruptedException, IOException {
+        String pathToExe = installation.getHome();
+        FilePath exec = new FilePath(launcher.getChannel(), pathToExe);
 
-        if (installation == null) {
-            return null;
-        } else {
-            installation = installation.forNode(Computer.currentComputer().getNode(), listener);
-            installation = installation.forEnvironment(env);
-            String pathToExe = installation.getHome();
-            FilePath exec = new FilePath(launcher.getChannel(), pathToExe);
-
-            try {
-                if (!exec.exists()) {
-                    listener.fatalError(pathToExe + " doesn't exist");
-                    return null;
-                }
-            } catch (IOException e) {
-                listener.fatalError("Failed checking for existence of " + pathToExe);
+        try {
+            if (!exec.exists()) {
+                listener.fatalError(pathToExe + " doesn't exist");
                 return null;
             }
-
-            listener.getLogger().println("Path To exe: " + pathToExe);
-            return StringUtil.appendQuote(pathToExe);
+        } catch (IOException e) {
+            listener.fatalError("Failed checking for existence of " + pathToExe);
+            return null;
         }
+
+        listener.getLogger().println("Path To exe: " + pathToExe);
+        return StringUtil.appendQuote(pathToExe);
     }
 
     /**
