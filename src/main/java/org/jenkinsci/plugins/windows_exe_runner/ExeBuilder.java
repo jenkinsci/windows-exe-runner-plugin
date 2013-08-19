@@ -15,10 +15,12 @@ import hudson.FilePath;
 import hudson.Launcher;
 import hudson.Util;
 import hudson.model.AbstractBuild;
+import hudson.model.AbstractProject;
 import hudson.model.BuildListener;
 import hudson.model.Computer;
 import hudson.model.Descriptor;
 import hudson.model.Result;
+import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
 import hudson.tools.ToolInstallation;
 import hudson.util.ArgumentListBuilder;
@@ -218,7 +220,7 @@ public class ExeBuilder extends Builder {
     /**
      * @author Yasuyuki Saito
      */
-    public static final class DescriptorImpl extends Descriptor<Builder> {
+    public static final class DescriptorImpl extends BuildStepDescriptor<Builder> {
 
         @CopyOnWrite
         private volatile ExeInstallation[] installations = new ExeInstallation[0];
@@ -246,6 +248,11 @@ public class ExeBuilder extends Builder {
          */
         public ExeInstallation.DescriptorImpl getToolDescriptor() {
             return ToolInstallation.all().get(ExeInstallation.DescriptorImpl.class);
+        }
+
+        @Override
+        public boolean isApplicable(Class<? extends AbstractProject> jobType) {
+            return true;
         }
     }
 }
