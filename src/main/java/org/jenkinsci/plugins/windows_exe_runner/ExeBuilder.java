@@ -24,6 +24,10 @@ import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
 import hudson.tools.ToolInstallation;
 import hudson.util.ArgumentListBuilder;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import org.jenkinsci.plugins.tokenmacro.MacroEvaluationException;
+import org.jenkinsci.plugins.tokenmacro.TokenMacro;
 
 /**
  * @author Yasuyuki Saito
@@ -89,11 +93,11 @@ public class ExeBuilder extends Builder {
 
         // Default Arguments
         if (!StringUtil.isNullOrSpace(installation.getDefaultArgs()))
-            args.addAll(getArguments(build, env, installation.getDefaultArgs()));
+            args.addAll(getArguments(build, listener, installation.getDefaultArgs()));
 
         // Manual Command Line String
         if (!StringUtil.isNullOrSpace(cmdLineArgs))
-            args.addAll(getArguments(build, env, cmdLineArgs));
+            args.addAll(getArguments(build, listener, cmdLineArgs));
 
         // exe run.
         boolean r = exec(args, build, launcher, listener, env);
@@ -138,14 +142,17 @@ public class ExeBuilder extends Builder {
      * @throws InterruptedException
      * @throws IOException
      */
-    private List<String> getArguments(AbstractBuild<?, ?> build, EnvVars env, String values) throws InterruptedException, IOException {
+    private List<String> getArguments(AbstractBuild<?, ?> build, BuildListener listener, String values) throws InterruptedException, IOException {
         ArrayList<String> args = new ArrayList<String>();
         StringTokenizer valuesToknzr = new StringTokenizer(values, " \t\r\n");
 
         while (valuesToknzr.hasMoreTokens()) {
             String value = valuesToknzr.nextToken();
-            value = Util.replaceMacro(value, env);
-            value = Util.replaceMacro(value, build.getBuildVariables());
+            try {
+                value = TokenMacro.expandAll(build, listener, value);
+            } catch (MacroEvaluationException ex) {
+                Logger.getLogger(ExeBuilder.class.getName()).log(Level.SEVERE, null, ex);
+            }
 
             if (!StringUtil.isNullOrSpace(value))
                 args.add(value);
