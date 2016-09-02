@@ -1,10 +1,5 @@
 package org.jenkinsci.plugins.windows_exe_runner;
 
-import java.io.IOException;
-
-import org.jenkinsci.plugins.windows_exe_runner.Messages;
-import org.kohsuke.stapler.DataBoundConstructor;
-
 import hudson.EnvVars;
 import hudson.Extension;
 import hudson.model.EnvironmentSpecific;
@@ -14,6 +9,8 @@ import hudson.model.TaskListener;
 import hudson.slaves.NodeSpecific;
 import hudson.tools.ToolDescriptor;
 import hudson.tools.ToolInstallation;
+import java.io.IOException;
+import org.kohsuke.stapler.DataBoundConstructor;
 
 /**
 * @author Yasuyuki Saito
@@ -23,7 +20,7 @@ public final class ExeInstallation extends ToolInstallation implements NodeSpeci
     /** */
     private transient String pathToExe;
 
-    private String defaultArgs;
+    private final String defaultArgs;
 
     @DataBoundConstructor
     public ExeInstallation(String name, String home, String defaultArgs) {
@@ -31,14 +28,17 @@ public final class ExeInstallation extends ToolInstallation implements NodeSpeci
         this.defaultArgs = defaultArgs;
     }
 
+    @Override
     public ExeInstallation forNode(Node node, TaskListener log) throws IOException, InterruptedException {
         return new ExeInstallation(getName(), translateFor(node, log), this.defaultArgs);
     }
 
+    @Override
     public ExeInstallation forEnvironment(EnvVars environment) {
         return new ExeInstallation(getName(), environment.expand(getHome()), this.defaultArgs);
     }
 
+    @Override
     protected Object readResolve() {
         if (this.pathToExe != null) {
             return new ExeInstallation(this.getName(), this.pathToExe, this.defaultArgs);
@@ -56,6 +56,7 @@ public final class ExeInstallation extends ToolInstallation implements NodeSpeci
     @Extension
     public static class DescriptorImpl extends ToolDescriptor<ExeInstallation> {
 
+        @Override
         public String getDisplayName() {
             return Messages.ExeInstallation_DisplayName();
         }

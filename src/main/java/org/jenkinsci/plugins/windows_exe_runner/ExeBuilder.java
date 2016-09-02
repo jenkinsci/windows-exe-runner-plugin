@@ -1,13 +1,5 @@
 package org.jenkinsci.plugins.windows_exe_runner;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.StringTokenizer;
-
-import org.jenkinsci.plugins.windows_exe_runner.util.StringUtil;
-import org.kohsuke.stapler.DataBoundConstructor;
-
 import hudson.CopyOnWrite;
 import hudson.EnvVars;
 import hudson.Extension;
@@ -24,10 +16,16 @@ import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
 import hudson.tools.ToolInstallation;
 import hudson.util.ArgumentListBuilder;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.StringTokenizer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.jenkinsci.plugins.tokenmacro.MacroEvaluationException;
 import org.jenkinsci.plugins.tokenmacro.TokenMacro;
+import org.jenkinsci.plugins.windows_exe_runner.util.StringUtil;
+import org.kohsuke.stapler.DataBoundConstructor;
 
 /**
  * @author Yasuyuki Saito
@@ -237,11 +235,12 @@ public class ExeBuilder extends Builder {
             load();
         }
 
+        @Override
         public String getDisplayName() {
             return Messages.ExeBuilder_DisplayName();
         }
 
-        public ExeInstallation[] getInstallations() {
+        protected ExeInstallation[] getInstallations() {
             return installations;
         }
 
