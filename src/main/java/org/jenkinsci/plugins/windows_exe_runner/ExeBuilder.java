@@ -240,7 +240,7 @@ public class ExeBuilder extends Builder {
             return Messages.ExeBuilder_DisplayName();
         }
 
-        protected ExeInstallation[] getInstallations() {
+        public ExeInstallation[] getInstallations() {
             return installations;
         }
 
