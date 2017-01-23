@@ -10,6 +10,7 @@ import hudson.slaves.NodeSpecific;
 import hudson.tools.ToolDescriptor;
 import hudson.tools.ToolInstallation;
 import java.io.IOException;
+import jenkins.model.Jenkins;
 import org.kohsuke.stapler.DataBoundConstructor;
 
 /**
@@ -63,12 +64,12 @@ public final class ExeInstallation extends ToolInstallation implements NodeSpeci
 
         @Override
         public ExeInstallation[] getInstallations() {
-            return Hudson.getInstance().getDescriptorByType(ExeBuilder.DescriptorImpl.class).getInstallations();
+            return Jenkins.getInstance().getDescriptorByType(ExeBuilder.DescriptorImpl.class).getInstallations();
         }
 
         @Override
         public void setInstallations(ExeInstallation... installations) {
-            Hudson.getInstance().getDescriptorByType(ExeBuilder.DescriptorImpl.class).setInstallations(installations);
+            Jenkins.getInstance().getDescriptorByType(ExeBuilder.DescriptorImpl.class).setInstallations(installations);
         }
 
     }
