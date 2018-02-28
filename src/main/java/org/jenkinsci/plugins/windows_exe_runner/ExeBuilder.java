@@ -5,13 +5,15 @@ import hudson.EnvVars;
 import hudson.Extension;
 import hudson.FilePath;
 import hudson.Launcher;
+import hudson.Plugin;
 import hudson.Util;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
-import hudson.model.BuildListener;
 import hudson.model.Computer;
 import hudson.model.Descriptor;
 import hudson.model.Result;
+import hudson.model.Run;
+import hudson.model.TaskListener;
 import hudson.tasks.BuildStepDescriptor;
 import hudson.tasks.Builder;
 import hudson.tools.ToolInstallation;
@@ -20,8 +22,8 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.StringTokenizer;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import jenkins.model.Jenkins;
+import jenkins.tasks.SimpleBuildStep;
 import org.jenkinsci.plugins.tokenmacro.MacroEvaluationException;
 import org.jenkinsci.plugins.tokenmacro.TokenMacro;
 import org.jenkinsci.plugins.windows_exe_runner.util.StringUtil;
@@ -30,7 +32,7 @@ import org.kohsuke.stapler.DataBoundConstructor;
 /**
  * @author Yasuyuki Saito
  */
-public class ExeBuilder extends Builder {
+public class ExeBuilder extends Builder implements SimpleBuildStep {
 
     private final String exeName;
     private final String cmdLineArgs;
@@ -44,9 +46,9 @@ public class ExeBuilder extends Builder {
      */
     @DataBoundConstructor
     public ExeBuilder(String exeName, String cmdLineArgs, boolean failBuild) {
-        this.exeName     = exeName;
+        this.exeName = exeName;
         this.cmdLineArgs = cmdLineArgs;
-        this.failBuild   = failBuild;
+        this.failBuild = failBuild;
     }
 
     public String getExeName() {
@@ -62,121 +64,131 @@ public class ExeBuilder extends Builder {
     }
 
     public ExeInstallation getInstallation() {
-        if (exeName == null) return null;
+        if (exeName == null) {
+            return null;
+        }
         for (ExeInstallation i : DESCRIPTOR.getInstallations()) {
-            if (exeName.equals(i.getName()))
+            if (exeName.equals(i.getName())) {
                 return i;
+            }
         }
         return null;
     }
 
     @Override
-    public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener) throws InterruptedException, IOException {
+    public void perform(Run<?, ?> run, FilePath workspace, Launcher launcher, TaskListener tl) throws InterruptedException, IOException {
+        //public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener) throws InterruptedException, IOException {
 
         ArrayList<String> args = new ArrayList<String>();
-        EnvVars env = build.getEnvironment(listener);
-
+        EnvVars env = run.getEnvironment(tl);
         ExeInstallation installation = getInstallation();
         if (installation == null) {
-            listener.fatalError("ExeInstallation not found.");
-            return false;
+            tl.fatalError("ExeInstallation not found.");
+            //return false;
         }
-        installation = installation.forNode(Computer.currentComputer().getNode(), listener);
+        installation = installation.forNode(Computer.currentComputer().getNode(), tl);
         installation = installation.forEnvironment(env);
 
         // exe path.
-        String exePath = getExePath(installation, launcher, listener);
-        if (StringUtil.isNullOrSpace(exePath)) return false;
+        String exePath = getExePath(installation, launcher, tl);
+        //if (StringUtil.isNullOrSpace(exePath)) return false;
         args.add(exePath);
 
         // Default Arguments
-        if (!StringUtil.isNullOrSpace(installation.getDefaultArgs()))
-            args.addAll(getArguments(build, listener, installation.getDefaultArgs()));
+        if (!StringUtil.isNullOrSpace(installation.getDefaultArgs())) {
+            args.addAll(getArguments(run, workspace, tl, installation.getDefaultArgs()));
+        }
 
         // Manual Command Line String
-        if (!StringUtil.isNullOrSpace(cmdLineArgs))
-            args.addAll(getArguments(build, listener, cmdLineArgs));
+        if (!StringUtil.isNullOrSpace(cmdLineArgs)) {
+            args.addAll(getArguments(run, workspace, tl, cmdLineArgs));
+        }
 
         // exe run.
-        boolean r = exec(args, build, launcher, listener, env);
-
-        return r;
+        boolean r = exec(args, run, launcher, tl, env, workspace);
+        //return r;
     }
-
 
     /**
      *
-     * @param  installation
-     * @param  launcher
-     * @param  listener
+     * @param installation
+     * @param launcher
+     * @param tl
      * @return
      * @throws InterruptedException
      * @throws IOException
      */
-    private String getExePath(ExeInstallation installation, Launcher launcher, BuildListener listener) throws InterruptedException, IOException {
+    private String getExePath(ExeInstallation installation, Launcher launcher, TaskListener tl) throws InterruptedException, IOException {
         String pathToExe = installation.getHome();
         FilePath exec = new FilePath(launcher.getChannel(), pathToExe);
 
         try {
             if (!exec.exists()) {
-                listener.fatalError(pathToExe + " doesn't exist");
+                tl.fatalError(pathToExe + " doesn't exist");
                 return null;
             }
         } catch (IOException e) {
-            listener.fatalError("Failed checking for existence of " + pathToExe);
+            tl.fatalError("Failed checking for existence of " + pathToExe);
             return null;
         }
 
-        listener.getLogger().println("Path To exe: " + pathToExe);
+        tl.getLogger().println("Path To exe: " + pathToExe);
         return StringUtil.appendQuote(pathToExe);
     }
 
     /**
      *
-     * @param  build
-     * @param  env
-     * @param  values
+     * @param run
+     * @param env
+     * @param values
      * @return
      * @throws InterruptedException
      * @throws IOException
      */
-    private List<String> getArguments(AbstractBuild<?, ?> build, BuildListener listener, String values) throws InterruptedException, IOException {
+    private List<String> getArguments(Run<?, ?> run, hudson.FilePath workspace, TaskListener tl, String values) throws InterruptedException, IOException {
         ArrayList<String> args = new ArrayList<String>();
         StringTokenizer valuesToknzr = new StringTokenizer(values, " \t\r\n");
 
         while (valuesToknzr.hasMoreTokens()) {
             String value = valuesToknzr.nextToken();
-            try {
-                value = TokenMacro.expandAll(build, listener, value);
-            } catch (MacroEvaluationException ex) {
-                Logger.getLogger(ExeBuilder.class.getName()).log(Level.SEVERE, null, ex);
+            if (run instanceof AbstractBuild) {
+                Plugin p = Jenkins.getInstance().getPlugin("token-macro");
+                if (null != p && p.getWrapper().isActive()) {
+                    try {
+                        value = TokenMacro.expandAll(run, workspace, tl, value);
+                    } catch (MacroEvaluationException ex) {
+                        tl.error("TokenMacro was unable to evaluate: " + value + " " + ex.getMessage());
+                    }
+                } else {
+                    EnvVars envVars = run.getEnvironment(tl);
+                    value = envVars.expand(value);
+                }
             }
-
-            if (!StringUtil.isNullOrSpace(value))
+            if (!StringUtil.isNullOrSpace(value)) {
                 args.add(value);
+            }
         }
-
         return args;
     }
 
     /**
      *
-     * @param  args
-     * @param  build
-     * @param  launcher
-     * @param  listener
-     * @param  env
+     * @param args
+     * @param build
+     * @param launcher
+     * @param tl
+     * @param env
      * @return
      * @throws InterruptedException
      * @throws IOException
      */
-    private boolean exec(List<String> args, AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener, EnvVars env) throws InterruptedException, IOException {
+    private boolean exec(List<String> args, Run<?, ?> run, Launcher launcher, TaskListener tl, EnvVars env, FilePath workspace) throws InterruptedException, IOException {
         ArgumentListBuilder cmdExecArgs = new ArgumentListBuilder();
         FilePath tmpDir = null;
-        FilePath pwd = build.getWorkspace();
+        //FilePath pwd = run.getWorkspace();
 
         if (!launcher.isUnix()) {
-            tmpDir = pwd.createTextTempFile("exe_runner_", ".bat", StringUtil.concatString(args), false);
+            tmpDir = workspace.createTextTempFile("exe_runner_", ".bat", StringUtil.concatString(args), false);
             cmdExecArgs.add("cmd.exe", "/C", tmpDir.getRemote(), "&&", "exit", "%ERRORLEVEL%");
         } else {
             for (String arg : args) {
@@ -184,36 +196,38 @@ public class ExeBuilder extends Builder {
             }
         }
 
-        listener.getLogger().println("Executing : " + cmdExecArgs.toStringWithQuote());
+        tl.getLogger().println("Executing : " + cmdExecArgs.toStringWithQuote());
 
         try {
-            int r = launcher.launch().cmds(cmdExecArgs).envs(env).stdout(listener).pwd(pwd).join();
+            int r = launcher.launch().cmds(cmdExecArgs).envs(env).stdout(tl).pwd(workspace).join();
 
-            if (failBuild)
+            if (failBuild) {
                 return (r == 0);
-            else {
-                if (r != 0)
-                    build.setResult(Result.UNSTABLE);
+            } else {
+                if (r != 0) {
+                    run.setResult(Result.UNSTABLE);
+                }
                 return true;
             }
         } catch (IOException e) {
-            Util.displayIOException(e, listener);
-            e.printStackTrace(listener.fatalError("execution failed"));
+            Util.displayIOException(e, tl);
+            e.printStackTrace(tl.fatalError("execution failed"));
             return false;
         } finally {
             try {
-                if (tmpDir != null) tmpDir.delete();
+                if (tmpDir != null) {
+                    tmpDir.delete();
+                }
             } catch (IOException e) {
-                Util.displayIOException(e, listener);
-                e.printStackTrace(listener.fatalError("temporary file delete failed"));
+                Util.displayIOException(e, tl);
+                e.printStackTrace(tl.fatalError("temporary file delete failed"));
             }
         }
     }
 
-
     @Override
     public Descriptor<Builder> getDescriptor() {
-         return DESCRIPTOR;
+        return DESCRIPTOR;
     }
 
     /**
