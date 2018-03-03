@@ -1,4 +1,4 @@
 <?jelly escape-by-default='true'?>
 <div>
-    This plug-in is used to run the Windows Exe.
+    This plug-in is used to run Windows executables
 </div>

@@ -2,8 +2,10 @@ package org.jenkinsci.plugins.windows_exe_runner;
 
 import hudson.EnvVars;
 import hudson.Extension;
+import hudson.FilePath;
+import hudson.Util;
+import hudson.model.Computer;
 import hudson.model.EnvironmentSpecific;
-import hudson.model.Hudson;
 import hudson.model.Node;
 import hudson.model.TaskListener;
 import hudson.slaves.NodeSpecific;
@@ -26,7 +28,7 @@ public final class ExeInstallation extends ToolInstallation implements NodeSpeci
     @DataBoundConstructor
     public ExeInstallation(String name, String home, String defaultArgs) {
         super(name, home, null);
-        this.defaultArgs = defaultArgs;
+        this.defaultArgs = Util.fixEmptyAndTrim(defaultArgs);
     }
 
     @Override
@@ -51,6 +53,24 @@ public final class ExeInstallation extends ToolInstallation implements NodeSpeci
         return this.defaultArgs;
     }
 
+    /**
+     * @author ndeloof via git plugin
+     */
+    public static Node workspaceToNode(FilePath workspace) {
+        Jenkins j = Jenkins.getActiveInstance();
+        if (workspace != null && workspace.isRemote()) {
+            for (Computer c : j.getComputers()) {
+                if (c.getChannel() == workspace.getChannel()) {
+                    Node n = c.getNode();
+                    if (n != null) {
+                        return n;
+                    }
+                }
+            }
+        }
+        return j;
+    }
+    
     /**
      * @author Yasuyuki Saito
      */

@@ -16,7 +16,7 @@
 
     <f:entry title="${%FailBuild}" field="failBuild">
         <f:checkbox name="ExeBuilder.failBuild" value="${instance.failBuild}"
-                    checked="${instance.failBuild}" default="true" />
+                    checked="${instance.failBuild}" default="${descriptor.DEFAULTFAILBUILD}" />
     </f:entry>
 
 </j:jelly>

@@ -1,5 +1,6 @@
 package org.jenkinsci.plugins.windows_exe_runner;
 
+import hudson.AbortException;
 import hudson.CopyOnWrite;
 import hudson.EnvVars;
 import hudson.Extension;
@@ -9,7 +10,6 @@ import hudson.Plugin;
 import hudson.Util;
 import hudson.model.AbstractBuild;
 import hudson.model.AbstractProject;
-import hudson.model.Computer;
 import hudson.model.Descriptor;
 import hudson.model.Result;
 import hudson.model.Run;
@@ -22,12 +22,15 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.StringTokenizer;
+import javax.annotation.CheckForNull;
 import jenkins.model.Jenkins;
 import jenkins.tasks.SimpleBuildStep;
+import org.jenkinsci.Symbol;
 import org.jenkinsci.plugins.tokenmacro.MacroEvaluationException;
 import org.jenkinsci.plugins.tokenmacro.TokenMacro;
 import org.jenkinsci.plugins.windows_exe_runner.util.StringUtil;
 import org.kohsuke.stapler.DataBoundConstructor;
+import org.kohsuke.stapler.DataBoundSetter;
 
 /**
  * @author Yasuyuki Saito
@@ -35,8 +38,9 @@ import org.kohsuke.stapler.DataBoundConstructor;
 public class ExeBuilder extends Builder implements SimpleBuildStep {
 
     private final String exeName;
-    private final String cmdLineArgs;
-    private final boolean failBuild;
+    @CheckForNull
+    private String cmdLineArgs;
+    private boolean failBuild = DescriptorImpl.DEFAULTFAILBUILD;
 
     /**
      *
@@ -44,23 +48,40 @@ public class ExeBuilder extends Builder implements SimpleBuildStep {
      * @param cmdLineArgs
      * @param failBuild
      */
-    @DataBoundConstructor
+    
+    @Deprecated
     public ExeBuilder(String exeName, String cmdLineArgs, boolean failBuild) {
         this.exeName = exeName;
         this.cmdLineArgs = cmdLineArgs;
         this.failBuild = failBuild;
+    }
+    
+    @DataBoundConstructor
+    public ExeBuilder(String exeName) {
+        this.exeName = exeName;
     }
 
     public String getExeName() {
         return exeName;
     }
 
+    @CheckForNull
     public String getCmdLineArgs() {
         return cmdLineArgs;
     }
+    
+    @DataBoundSetter
+    public void setCmdLineArgs(String args){
+        this.cmdLineArgs=Util.fixEmptyAndTrim(args);
+    }
 
-    public boolean isFailBuild() {
+    public boolean getFailBuild() {
         return failBuild;
+    }
+    
+    @DataBoundSetter
+    public void setFailBuild(boolean f) {
+        this.failBuild=f;
     }
 
     public ExeInstallation getInstallation() {
@@ -83,15 +104,19 @@ public class ExeBuilder extends Builder implements SimpleBuildStep {
         EnvVars env = run.getEnvironment(tl);
         ExeInstallation installation = getInstallation();
         if (installation == null) {
-            tl.fatalError("ExeInstallation not found.");
-            //return false;
+            throw new AbortException("ExeInstallation not found.");
         }
-        installation = installation.forNode(Computer.currentComputer().getNode(), tl);
-        installation = installation.forEnvironment(env);
+        installation = installation.forNode(ExeInstallation.workspaceToNode(workspace), tl);
+        
+        if (run instanceof AbstractBuild) {
+            installation = installation.forEnvironment(env);
+        }
 
         // exe path.
         String exePath = getExePath(installation, launcher, tl);
-        //if (StringUtil.isNullOrSpace(exePath)) return false;
+        if (StringUtil.isNullOrSpace(exePath)){
+            throw new AbortException("Exe path is blank.");
+        }
         args.add(exePath);
 
         // Default Arguments
@@ -105,8 +130,7 @@ public class ExeBuilder extends Builder implements SimpleBuildStep {
         }
 
         // exe run.
-        boolean r = exec(args, run, launcher, tl, env, workspace);
-        //return r;
+        exec(args, run, launcher, tl, env, workspace);
     }
 
     /**
@@ -182,7 +206,7 @@ public class ExeBuilder extends Builder implements SimpleBuildStep {
      * @throws InterruptedException
      * @throws IOException
      */
-    private boolean exec(List<String> args, Run<?, ?> run, Launcher launcher, TaskListener tl, EnvVars env, FilePath workspace) throws InterruptedException, IOException {
+    private void exec(List<String> args, Run<?, ?> run, Launcher launcher, TaskListener tl, EnvVars env, FilePath workspace) throws InterruptedException, IOException {
         ArgumentListBuilder cmdExecArgs = new ArgumentListBuilder();
         FilePath tmpDir = null;
         //FilePath pwd = run.getWorkspace();
@@ -202,17 +226,19 @@ public class ExeBuilder extends Builder implements SimpleBuildStep {
             int r = launcher.launch().cmds(cmdExecArgs).envs(env).stdout(tl).pwd(workspace).join();
 
             if (failBuild) {
-                return (r == 0);
+                if (r!=0){
+                    throw new AbortException("Exited with code: " + r);
+                }
             } else {
                 if (r != 0) {
+                    tl.getLogger().println("Exe exited with code: " + r);
                     run.setResult(Result.UNSTABLE);
                 }
-                return true;
             }
         } catch (IOException e) {
             Util.displayIOException(e, tl);
             e.printStackTrace(tl.fatalError("execution failed"));
-            return false;
+            throw new AbortException("execution failed");
         } finally {
             try {
                 if (tmpDir != null) {
@@ -239,12 +265,14 @@ public class ExeBuilder extends Builder implements SimpleBuildStep {
     /**
      * @author Yasuyuki Saito
      */
+    @Symbol ("runexe")
+    @Extension
     public static final class DescriptorImpl extends BuildStepDescriptor<Builder> {
-
+        public static final boolean DEFAULTFAILBUILD =true;
         @CopyOnWrite
         private volatile ExeInstallation[] installations = new ExeInstallation[0];
 
-        DescriptorImpl() {
+        public DescriptorImpl() {
             super(ExeBuilder.class);
             load();
         }
