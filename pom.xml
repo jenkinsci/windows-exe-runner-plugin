@@ -31,6 +31,10 @@
             <name>Yasuyuki Saito</name>
             <email>yasuyuki.saito.2012@gmail.com</email>
         </developer>
+		<developer>
+            <id>mdkf</id>
+            <name>Michael DK Fowler</name>
+        </developer>
     </developers>
   
     <licenses>

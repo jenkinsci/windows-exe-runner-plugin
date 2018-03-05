@@ -101,7 +101,7 @@ public class ExeBuilder extends Builder implements SimpleBuildStep {
         //public boolean perform(AbstractBuild<?, ?> build, Launcher launcher, BuildListener listener) throws InterruptedException, IOException {
 
         ArrayList<String> args = new ArrayList<String>();
-        EnvVars env = run.getEnvironment(tl);
+        EnvVars env = null;
         ExeInstallation installation = getInstallation();
         if (installation == null) {
             throw new AbortException("ExeInstallation not found.");
@@ -109,6 +109,7 @@ public class ExeBuilder extends Builder implements SimpleBuildStep {
         installation = installation.forNode(ExeInstallation.workspaceToNode(workspace), tl);
         
         if (run instanceof AbstractBuild) {
+            env = run.getEnvironment(tl);
             installation = installation.forEnvironment(env);
         }
 
@@ -162,9 +163,6 @@ public class ExeBuilder extends Builder implements SimpleBuildStep {
 
     /**
      *
-     * @param run
-     * @param env
-     * @param values
      * @return
      * @throws InterruptedException
      * @throws IOException
