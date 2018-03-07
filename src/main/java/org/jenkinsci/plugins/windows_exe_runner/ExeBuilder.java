@@ -264,7 +264,6 @@ public class ExeBuilder extends Builder implements SimpleBuildStep {
      * @author Yasuyuki Saito
      */
     @Symbol ("runexe")
-    @Extension
     public static final class DescriptorImpl extends BuildStepDescriptor<Builder> {
         public static final boolean DEFAULTFAILBUILD =true;
         @CopyOnWrite
