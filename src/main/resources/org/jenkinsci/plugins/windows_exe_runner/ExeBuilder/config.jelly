@@ -1,3 +1,4 @@
+<?jelly escape-by-default='true'?>
 <j:jelly xmlns:j="jelly:core" xmlns:st="jelly:stapler" xmlns:d="jelly:define" xmlns:l="/lib/layout"
          xmlns:t="/lib/hudson" xmlns:f="/lib/form">
 
@@ -15,7 +16,7 @@
 
     <f:entry title="${%FailBuild}" field="failBuild">
         <f:checkbox name="ExeBuilder.failBuild" value="${instance.failBuild}"
-                    checked="${instance.failBuild}" default="true" />
+                    checked="${instance.failBuild}" default="${descriptor.DEFAULTFAILBUILD}" />
     </f:entry>
 
 </j:jelly>
