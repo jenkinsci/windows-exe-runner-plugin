@@ -221,7 +221,13 @@ public class ExeBuilder extends Builder implements SimpleBuildStep {
         tl.getLogger().println("Executing : " + cmdExecArgs.toStringWithQuote());
 
         try {
-            int r = launcher.launch().cmds(cmdExecArgs).envs(env).stdout(tl).pwd(workspace).join();
+            int r;
+            if (run instanceof AbstractBuild) {
+                r = launcher.launch().cmds(cmdExecArgs).envs(env).stdout(tl).pwd(workspace).join();
+            }
+            else{
+                r = launcher.launch().cmds(cmdExecArgs).stdout(tl).pwd(workspace).join();   //env vars arent available in pipeline
+            }
 
             if (failBuild) {
                 if (r!=0){
@@ -237,7 +243,10 @@ public class ExeBuilder extends Builder implements SimpleBuildStep {
             Util.displayIOException(e, tl);
             e.printStackTrace(tl.fatalError("execution failed"));
             throw new AbortException("execution failed");
-        } finally {
+        } catch (InterruptedException e) {
+            e.printStackTrace(tl.fatalError("execution failed"));
+            throw new AbortException("execution failed");
+        }finally {
             try {
                 if (tmpDir != null) {
                     tmpDir.delete();
