@@ -55,7 +55,7 @@ public class ExeBuilder extends Builder implements SimpleBuildStep {
         this.cmdLineArgs = cmdLineArgs;
         this.failBuild = failBuild;
     }
-    
+
     @DataBoundConstructor
     public ExeBuilder(String exeName) {
         this.exeName = exeName;
@@ -69,19 +69,19 @@ public class ExeBuilder extends Builder implements SimpleBuildStep {
     public String getCmdLineArgs() {
         return cmdLineArgs;
     }
-    
+
     @DataBoundSetter
-    public void setCmdLineArgs(String args){
-        this.cmdLineArgs=Util.fixEmptyAndTrim(args);
+    public void setCmdLineArgs(String args) {
+        this.cmdLineArgs = Util.fixEmptyAndTrim(args);
     }
 
     public boolean getFailBuild() {
         return failBuild;
     }
-    
+
     @DataBoundSetter
     public void setFailBuild(boolean f) {
-        this.failBuild=f;
+        this.failBuild = f;
     }
 
     public ExeInstallation getInstallation() {
@@ -107,7 +107,7 @@ public class ExeBuilder extends Builder implements SimpleBuildStep {
             throw new AbortException("ExeInstallation not found.");
         }
         installation = installation.forNode(ExeInstallation.workspaceToNode(workspace), tl);
-        
+
         if (run instanceof AbstractBuild) {
             env = run.getEnvironment(tl);
             installation = installation.forEnvironment(env);
@@ -115,7 +115,7 @@ public class ExeBuilder extends Builder implements SimpleBuildStep {
 
         // exe path.
         String exePath = getExePath(installation, launcher, tl);
-        if (StringUtil.isNullOrSpace(exePath)){
+        if (StringUtil.isNullOrSpace(exePath)) {
             throw new AbortException("Exe path is blank.");
         }
         args.add(exePath);
@@ -230,7 +230,7 @@ public class ExeBuilder extends Builder implements SimpleBuildStep {
             }
 
             if (failBuild) {
-                if (r!=0){
+                if (r != 0) {
                     throw new AbortException("Exited with code: " + r);
                 }
             } else {
@@ -239,21 +239,9 @@ public class ExeBuilder extends Builder implements SimpleBuildStep {
                     run.setResult(Result.UNSTABLE);
                 }
             }
-        } catch (IOException e) {
-            Util.displayIOException(e, tl);
-            e.printStackTrace(tl.fatalError("execution failed"));
-            throw new AbortException("execution failed");
-        } catch (InterruptedException e) {
-            e.printStackTrace(tl.fatalError("execution failed"));
-            throw new AbortException("execution failed");
-        }finally {
-            try {
-                if (tmpDir != null) {
-                    tmpDir.delete();
-                }
-            } catch (IOException e) {
-                Util.displayIOException(e, tl);
-                e.printStackTrace(tl.fatalError("temporary file delete failed"));
+        } finally {
+            if (tmpDir != null) {
+                tmpDir.delete();
             }
         }
     }
@@ -272,9 +260,9 @@ public class ExeBuilder extends Builder implements SimpleBuildStep {
     /**
      * @author Yasuyuki Saito
      */
-    @Symbol ("runexe")
+    @Symbol("runexe")
     public static final class DescriptorImpl extends BuildStepDescriptor<Builder> {
-        public static final boolean DEFAULTFAILBUILD =true;
+        public static final boolean DEFAULTFAILBUILD = true;
         @CopyOnWrite
         private volatile ExeInstallation[] installations = new ExeInstallation[0];
 
