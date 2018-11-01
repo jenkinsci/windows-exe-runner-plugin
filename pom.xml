@@ -14,16 +14,17 @@
     </properties>
   
     <artifactId>windows-exe-runner</artifactId>
-    <version>1.3-SNAPSHOT</version>
+    <version>1.4-SNAPSHOT</version>
     <packaging>hpi</packaging>
     <name>Jenkins Windows Exe Runner Plugin</name>
     <url>https://wiki.jenkins-ci.org/display/JENKINS/Windows+Exe+Runner+Plugin</url>
 
     <scm>
-        <connection>scm:git:ssh://github.com/jenkinsci/windows-exe-runner-plugin.git</connection>
-        <developerConnection>scm:git:ssh://git@github.com/jenkinsci/windows-exe-runner-plugin.git</developerConnection>
+        <connection>scm:git:https://github.com/jenkinsci/windows-exe-runner-plugin.git</connection>
+        <developerConnection>scm:git:https://github.com/jenkinsci/windows-exe-runner-plugin.git</developerConnection>
         <url>https://github.com/jenkinsci/windows-exe-runner-plugin.git</url>
-    </scm>
+      <tag>HEAD</tag>
+  </scm>
   
     <developers>
         <developer>
