@@ -57,7 +57,7 @@ public final class ExeInstallation extends ToolInstallation implements NodeSpeci
      * @author ndeloof via git plugin
      */
     public static Node workspaceToNode(FilePath workspace) {
-        Jenkins j = Jenkins.getActiveInstance();
+        Jenkins j = Jenkins.get();
         if (workspace != null && workspace.isRemote()) {
             for (Computer c : j.getComputers()) {
                 if (c.getChannel() == workspace.getChannel()) {
@@ -84,12 +84,12 @@ public final class ExeInstallation extends ToolInstallation implements NodeSpeci
 
         @Override
         public ExeInstallation[] getInstallations() {
-            return Jenkins.getInstance().getDescriptorByType(ExeBuilder.DescriptorImpl.class).getInstallations();
+            return Jenkins.get().getDescriptorByType(ExeBuilder.DescriptorImpl.class).getInstallations();
         }
 
         @Override
         public void setInstallations(ExeInstallation... installations) {
-            Jenkins.getInstance().getDescriptorByType(ExeBuilder.DescriptorImpl.class).setInstallations(installations);
+            Jenkins.get().getDescriptorByType(ExeBuilder.DescriptorImpl.class).setInstallations(installations);
         }
 
     }

@@ -41,13 +41,6 @@ public class ExeBuilder extends Builder implements SimpleBuildStep {
     @CheckForNull
     private String cmdLineArgs;
     private boolean failBuild = DescriptorImpl.DEFAULTFAILBUILD;
-
-    /**
-     *
-     * @param exeName
-     * @param cmdLineArgs
-     * @param failBuild
-     */
     
     @Deprecated
     public ExeBuilder(String exeName, String cmdLineArgs, boolean failBuild) {
@@ -134,15 +127,6 @@ public class ExeBuilder extends Builder implements SimpleBuildStep {
         exec(args, run, launcher, tl, env, workspace);
     }
 
-    /**
-     *
-     * @param installation
-     * @param launcher
-     * @param tl
-     * @return
-     * @throws InterruptedException
-     * @throws IOException
-     */
     private String getExePath(ExeInstallation installation, Launcher launcher, TaskListener tl) throws InterruptedException, IOException {
         String pathToExe = installation.getHome();
         FilePath exec = new FilePath(launcher.getChannel(), pathToExe);
@@ -161,12 +145,6 @@ public class ExeBuilder extends Builder implements SimpleBuildStep {
         return StringUtil.appendQuote(pathToExe);
     }
 
-    /**
-     *
-     * @return
-     * @throws InterruptedException
-     * @throws IOException
-     */
     private List<String> getArguments(Run<?, ?> run, hudson.FilePath workspace, TaskListener tl, String values) throws InterruptedException, IOException {
         ArrayList<String> args = new ArrayList<String>();
         StringTokenizer valuesToknzr = new StringTokenizer(values, " \t\r\n");
@@ -174,7 +152,7 @@ public class ExeBuilder extends Builder implements SimpleBuildStep {
         while (valuesToknzr.hasMoreTokens()) {
             String value = valuesToknzr.nextToken();
             if (run instanceof AbstractBuild) {
-                Plugin p = Jenkins.getInstance().getPlugin("token-macro");
+                Plugin p = Jenkins.get().getPlugin("token-macro");
                 if (null != p && p.getWrapper().isActive()) {
                     try {
                         value = TokenMacro.expandAll(run, workspace, tl, value);
@@ -193,17 +171,6 @@ public class ExeBuilder extends Builder implements SimpleBuildStep {
         return args;
     }
 
-    /**
-     *
-     * @param args
-     * @param build
-     * @param launcher
-     * @param tl
-     * @param env
-     * @return
-     * @throws InterruptedException
-     * @throws IOException
-     */
     private void exec(List<String> args, Run<?, ?> run, Launcher launcher, TaskListener tl, EnvVars env, FilePath workspace) throws InterruptedException, IOException {
         ArgumentListBuilder cmdExecArgs = new ArgumentListBuilder();
         FilePath tmpDir = null;
